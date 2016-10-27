@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+
+xmlns:spring="http://www.springframework.org/schema/beans"
+
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+
+	<flow name="subvertFlow">
+		<amqp:inbound-endpoint
+			queueName="${rabbit.requestqueue}"
+			queueDurable="true"
+			connector-ref="AMQP_0_9_Connector"
+			doc:name="AMQP-0-9"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+		
+		<set-variable variableName="correlationId" value="#[payload.correlationid]" doc:name="Set correlationId"/>
+		        <set-variable variableName="xif" value="#[payload.data]" doc:name="Set xif"/>
+		        <set-payload value="#[org.apache.commons.lang3.StringEscapeUtils.unescapeXml(flowVars.xif)]" doc:name="Set XIF as payload"/>
+		        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+		
+		<set-payload value="#[payload.replace(&quot;&#65533;&quot;, &quot;&quot;).replaceAll(&quot;[\\x00-\\x09\\x11\\x12\\x14-\\x1F\\x7F]&quot;, &quot;&quot;)]" doc:name="Replace invalid characters (thanks, Windows)"/>
+		
+		<mulexml:xml-to-dom-transformer doc:name="XML to DOM"/>
+		
+		<set-variable variableName="offset" value="#[xpath3(&quot;//GlobalFileInfo/@StartTime&quot;)]" doc:name="Set offset"/>
+		
+		<set-variable variableName="contentblocks" value="#[xpath3(&quot;//ContentBlock&quot;, payload, 'NODESET')]" doc:name="Set contentblocks"/>
+		
+		<set-variable variableName="output" value="#[&quot;WEBVTT\n\n&quot;]" doc:name="Set output"/>
+		
+		<foreach doc:name="For Each" collection="#[flowVars.contentblocks]">
+		
+		<mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+		
+		<set-variable variableName="Text" value="#[xpath3(&quot;string-join((//Text/text()), '\n')&quot;)]" doc:name="Set Text"/>
+		
+		<set-variable variableName="TimeIn" value="#[xpath3(&quot;//TimeIn/@value&quot;)]" doc:name="Set TimeIn"/>
+		
+		<set-variable variableName="TimeOut" value="#[xpath3(&quot;//TimeOut/@value&quot;)]" doc:name="Set TimeOut"/>
+		
+		<set-variable variableName="startTime" value="#[&quot;&quot;]" doc:name="Set startTime"/>
+		
+		<set-variable variableName="endTime" value="#[&quot;&quot;]" doc:name="Set endTime"/>
+		
+		<scripting:transformer doc:name="Parse contentblock">
+		
+		<scripting:script engine="jruby" file="subvert.rb">
+		
+		<property key="TimeIn" value="#[flowVars.TimeIn]"/>
+		
+		<property key="offset" value="#[flowVars.offset]"/>
+		
+		<property key="TimeOut" value="#[flowVars.TimeOut]"/>
+		
+		<property key="endTime" value="#[flowVars.endTime]"/>
+		
+		<property key="counter" value="#[flowVars.counter]"/>
+		
+		<property key="Text" value="#[flowVars.Text]"/>
+		
+		<property key="startTime" value="#[flowVars.startTime]"/>
+		
+		</scripting:script>
+		
+		</scripting:transformer>
+		
+		<expression-component doc:name="Add contentblock to output"><![CDATA[#[flowVars.output = flowVars.output + payload]]]></expression-component>
+		
+		<logger message="#[payload]" level="INFO" doc:name="Logger"/>
+		
+		</foreach>
+		
+		<set-payload value="#[flowVars.output]" doc:name="Set Payload"/>
+		        <dw:transform-message doc:name="Transform Message">
+		            <dw:set-payload><![CDATA[%dw 1.0
+		%output application/json
+		---
+		{
+			response: {
+				correlationId: flowVars.correlationId,
+				status: 'OK',
+				data: payload
+		    }
+		}]]></dw:set-payload>
+		        </dw:transform-message>
+		        <amqp:outbound-endpoint queueName="${rabbit.responsequeue}" responseTimeout="10000" exchange-pattern="request-response" connector-ref="AMQP_0_9_Connector" doc:name="AMQP-0-9"/>
+        <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
+		
+		<logger level="INFO" doc:name="Logger"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <dw:transform-message doc:name="Transform Message">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	response: {
+		correlationId: flowVars.correlationId,
+		status: 'NOK'
+    }
+}]]></dw:set-payload>
+            </dw:transform-message>
+            <mulexml:xml-to-dom-transformer doc:name="XML to DOM"/>
+            <amqp:outbound-endpoint queueName="${rabbit.responsequeue}" responseTimeout="10000" exchange-pattern="request-response" connector-ref="AMQP_0_9_Connector" doc:name="AMQP-0-9"/>
+        </catch-exception-strategy>
+	
+	</flow>
+
+</mule>
