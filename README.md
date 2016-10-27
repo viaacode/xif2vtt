@@ -8,22 +8,18 @@ This serice listens to a RabbitMQ queue and will transform and publish the XIF p
 Publish a message with the following format on the request queue:
 ```
 {
-    "start": "10000800",
-    "end": "10002923",
-    "correlationid": "correlationdid0",
-    "data": "&lt;XIF version=&quot;1.0&quot;&gt;&lt;/XIF&gt;"
+	"correlationid": "correlationid0",
+	"data": "&lt;XIF version=&quot;1.0&quot;&gt;&lt;/XIF&gt;"
 }
 ```
-The start and end format must match the following format (without the colons):
-
-> 10:00:08:00
-
-Where the numbers are: hours, minutes, seconds and hundreths of a second respectively.
 
 The response will be posted on the response queue using the following format:
 ```
 {
-	"correlationid": "correlationid0",
-	"data": "&lt;XIF version=&quot;1.0&quot;&gt;&lt;/XIF&gt;"
+  "response": {
+    "correlationId": "test123",
+    "status": "OK",
+    "data": "WEBVTT\n\n1\n00:00:00.220 --> 00:00:05.170\nSample subtitle text."
+  }
 }
 ```
