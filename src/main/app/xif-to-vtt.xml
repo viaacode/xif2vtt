@@ -78,24 +78,22 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 		
 		<expression-component doc:name="Add contentblock to output"><![CDATA[#[flowVars.output = flowVars.output + payload]]]></expression-component>
 		
-		<logger message="#[payload]" level="INFO" doc:name="Logger"/>
-		
 		</foreach>
 		
 		<set-payload value="#[flowVars.output]" doc:name="Set Payload"/>
 		        <dw:transform-message doc:name="Transform Message">
 		            <dw:set-payload><![CDATA[%dw 1.0
-		%output application/json
-		---
-		{
-			response: {
-				correlationId: flowVars.correlationId,
-				status: 'OK',
-				data: payload
-		    }
-		}]]></dw:set-payload>
+%output application/json
+---
+{
+	response: {
+		correlationid: flowVars.correlationId,
+		status: 'OK',
+		data: payload
+    }
+}]]></dw:set-payload>
 		        </dw:transform-message>
-		        <amqp:outbound-endpoint queueName="${rabbit.responsequeue}" responseTimeout="10000" exchange-pattern="request-response" connector-ref="AMQP_0_9_Connector" doc:name="AMQP-0-9"/>
+		        <amqp:outbound-endpoint queueName="${rabbit.responsequeue}" responseTimeout="10000"  connector-ref="AMQP_0_9_Connector" doc:name="AMQP-0-9"/>
         <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
 		
 		<logger level="INFO" doc:name="Logger"/>

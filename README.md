@@ -17,7 +17,7 @@ The response will be posted on the response queue using the following format:
 ```
 {
   "response": {
-    "correlationId": "correlationid0",
+    "correlationid": "correlationid0",
     "status": "OK",
     "data": "WEBVTT\n\n1\n00:00:00.220 --> 00:00:05.170\nSample subtitle text."
   }
