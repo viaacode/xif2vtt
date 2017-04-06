@@ -12,16 +12,12 @@ def splittime(time)
   ss, dd = time.divmod(1)
   mm, ss = time.divmod(60)
   hh, mm = mm.divmod(60)
-  if hh < 0 or mm < 0 or ss < 0
-  hh = 00
-  mm = 00
-  ss = 00
-  end
   string = "%02d:%02d:%06.3f" % [hh, mm, ss]
+  string.gsub!(".",",")
   return string
 end
 
-offset = timeinsecs($offset)
+offset = timeinsecs($offset.to_s[0..1]+":00:00:00")
 timeins = splittime(timeinsecs($TimeIn) - offset)
 timeouts = splittime(timeinsecs($TimeOut) - offset)
 output = ""
