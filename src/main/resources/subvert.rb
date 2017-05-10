@@ -17,7 +17,7 @@ def splittime(time)
   return string
 end
 
-offset = timeinsecs($offset.to_s[0..1]+":00:00:00")
+offset = timeinsecs($offset)
 timeins = splittime(timeinsecs($TimeIn) - offset)
 timeouts = splittime(timeinsecs($TimeOut) - offset)
 output = ""
