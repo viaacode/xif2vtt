@@ -3,5 +3,4 @@
     <name>xif-to-vtt</name>
     <description></description>
     <muleExtension name="AMQP-0-9" qualifier="mule-transport-amqp-contribution"/>
-    <muleExtension name="AMQPS-0-9" qualifier="mule-transport-amqp-contribution"/>
 </mule-project>

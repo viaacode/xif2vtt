@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 		        <set-payload value="#[org.apache.commons.lang3.StringEscapeUtils.unescapeXml(flowVars.xif)]" doc:name="Set XIF as payload"/>
 		        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
 		
-		<set-payload value="#[payload.replace(&quot;&#65533;&quot;, &quot;&quot;).replaceAll(&quot;[\\x00-\\x09\\x11\\x12\\x14-\\x1F\\x7F]&quot;, &quot;&quot;)]" doc:name="Replace invalid characters (thanks, Windows)"/>
+		<set-payload value="#[payload.replace(&quot;&#65533;&quot;, &quot;&quot;).replaceAll(&quot;[\\x00-\\x09\\x11\\x12\\x14-\\x1F\\x7F]&quot;, &quot;&quot;).replaceAll(&quot;&amp;&quot;, &quot;&amp;amp;&quot;)]" doc:name="Replace invalid characters (thanks, Windows) - also replace ampersands"/>
 		
 		<mulexml:xml-to-dom-transformer doc:name="XML to DOM"/>
 		
